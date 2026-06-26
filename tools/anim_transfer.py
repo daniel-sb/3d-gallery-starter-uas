@@ -79,6 +79,12 @@ def main():
     for o in list(new_objs):
         bpy.data.objects.remove(o, do_unlink=True)
 
+    # 4b) Buang SEMUA action lain (mis. idle bawaan Avaturn "IdleV4.2") supaya
+    #     file hasil hanya berisi 1 animasi — kalau tidak, player.js bisa salah pilih.
+    for a in list(bpy.data.actions):
+        if a is not action:
+            bpy.data.actions.remove(a)
+
     # 5) Export GLB dengan animasi
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.export_scene.gltf(
