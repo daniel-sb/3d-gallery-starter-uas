@@ -7,11 +7,12 @@ Pakai:
 
 Contoh (Windows):
   "C:\\Program Files\\Blender Foundation\\Blender 5.1\\blender.exe" --background ^
-    --python tools/anim_transfer.py -- avatar.glb idle.fbx public/models/guide/character.glb
+    --python tools/anim_transfer.py -- model.glb Idle.fbx public/models/guide/character.glb
 
-Cara kerja: avatar Avaturn & FBX generik Mixamo punya rangka (skeleton) yang sama,
-jadi "action" animasi Mixamo bisa dipindah ke armature avatar. Script ini juga
-membuang prefix 'mixamorig:' agar nama tulang cocok.
+Cara kerja: avatar Avaturn & FBX Mixamo (dari mesh_for_mixamo) memakai nama tulang
+yang sama (Hips, Spine, ...), jadi "action" animasi Mixamo bisa langsung dipasang ke
+armature avatar. Mesh avatar tetap ter-skin ke armature-nya — kita cuma menggerakkannya.
+Diuji pada Blender 5.1 (Action API bersistem "slot").
 """
 import bpy
 import sys
@@ -37,26 +38,20 @@ def first_armature(objects):
     return None
 
 
-def strip_prefix(armature, action):
-    """Buang 'mixamorig:' dari nama tulang & dari data_path action supaya cocok."""
-    for bone in armature.data.bones:
-        if bone.name.startswith("mixamorig:"):
-            bone.name = bone.name.split(":", 1)[1]
-    if action:
-        for fc in action.fcurves:
-            if "mixamorig:" in fc.data_path:
-                fc.data_path = fc.data_path.replace("mixamorig:", "")
-
-
 def main():
     avatar_path, anim_path, out_path = get_args()
     clear_scene()
 
-    # 1) Import avatar GLB
+    # 1) Import avatar GLB (mesh sudah ter-skin ke armature-nya)
     bpy.ops.import_scene.gltf(filepath=avatar_path)
     avatar_arm = first_armature(bpy.context.scene.objects)
     if not avatar_arm:
         raise SystemExit("Tidak menemukan armature di avatar GLB.")
+
+    # Buang mesh nyasar tanpa vertex group (mis. Icosphere) supaya tak ikut ter-export
+    for o in list(bpy.context.scene.objects):
+        if o.type == "MESH" and len(o.vertex_groups) == 0:
+            bpy.data.objects.remove(o, do_unlink=True)
 
     before = set(bpy.context.scene.objects)
 
@@ -64,24 +59,27 @@ def main():
     bpy.ops.import_scene.fbx(filepath=anim_path)
     new_objs = set(bpy.context.scene.objects) - before
     mixamo_arm = first_armature(new_objs)
-    if not mixamo_arm or not mixamo_arm.animation_data:
+    if not mixamo_arm or not mixamo_arm.animation_data or not mixamo_arm.animation_data.action:
         raise SystemExit("Tidak menemukan animasi di FBX Mixamo.")
-
     action = mixamo_arm.animation_data.action
 
-    # 3) Samakan nama tulang (buang prefix mixamorig:)
-    strip_prefix(mixamo_arm, action)
-
-    # 4) Pasang action ke armature avatar
+    # 3) Pasang action ke armature avatar (nama tulang sama, langsung nyambung)
     if not avatar_arm.animation_data:
         avatar_arm.animation_data_create()
     avatar_arm.animation_data.action = action
+    # Blender 4.4+/5.x: action memakai "slot" — bind slot pertama agar animasi aktif
+    slots = getattr(action, "slots", None)
+    if slots and len(slots):
+        try:
+            avatar_arm.animation_data.action_slot = slots[0]
+        except Exception:
+            pass
 
-    # 5) Hapus objek Mixamo generik (sisakan avatar)
-    for o in new_objs:
+    # 4) Hapus objek Mixamo generik (armature + mesh-nya), sisakan avatar
+    for o in list(new_objs):
         bpy.data.objects.remove(o, do_unlink=True)
 
-    # 6) Export GLB dengan animasi
+    # 5) Export GLB dengan animasi
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.export_scene.gltf(
         filepath=out_path,
