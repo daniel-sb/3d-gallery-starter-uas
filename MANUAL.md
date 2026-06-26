@@ -356,14 +356,24 @@ seperti **Claude Code** atau **OpenAI Codex**. Pelajari dulu konsepnya.
 
 ### 6.4 Contoh prompt
 
-Tulis prompt yang **spesifik** dan sebutkan **file/letaknya** bila tahu. Contoh:
+**Anatomi prompt yang baik** — makin spesifik makin bagus. Sertakan:
+1. **Konteks/lokasi** — sebut file & fungsi bila tahu (mis. "di `modules/walls.js`").
+2. **Tujuan** — apa hasil akhir yang diinginkan.
+3. **Batasan** — aturan wajib (mis. "pakai `import.meta.env.BASE_URL`", "perubahan minimal").
+4. **Verifikasi** — minta agen menjelaskan langkah / menjalankan `npm run dev`.
+
+> Prompt buruk: *"bikin temboknya bagus"*. Prompt baik: lihat contoh di bawah.
 
 **A. Kustomisasi caption & lukisan**
 ```
 Di modules/paintingData.js, ganti semua lukisan jadi 6 karya portofolio saya.
 Gambarnya sudah saya taruh di public/artworks/ (a1.jpg s/d a6.jpg). Untuk tiap
-karya, set title, artist (nama saya), description, dan year sesuai daftar ini: ...
-Atur posisinya rapi di tembok depan dan belakang.
+karya set title, artist (nama saya: ...), description, dan year sesuai daftar:
+1. a1.jpg — "Senja di Kota", 2024, "cat akrilik di kanvas"
+2. a2.jpg — "Potret Ibu", 2025, "sketsa arang"
+3. ... (dst sampai 6)
+Pecah array jadi objek eksplisit (jangan pakai Array.from) supaya tiap karya
+mudah saya edit. Taruh 3 di tembok depan, 3 di tembok belakang, posisinya rapi.
 ```
 
 **B. Custom tembok motif Papua**
@@ -373,7 +383,23 @@ prosedural). Pakai RepeatWrapping, dan WAJIB prefix path dengan
 import.meta.env.BASE_URL supaya tetap jalan saat deploy ke GitHub Pages.
 ```
 
-**C. Perbaiki bug "karakter menembus patung"** *(bug nyata di starter ini)*
+**C. Ganti lantai / atap / pencahayaan**
+```
+Ganti tekstur lantai di modules/floor.js memakai public/img/marble.jpg
+(RepeatWrapping, prefix import.meta.env.BASE_URL). Lalu di modules/lighting.js
+naikkan sedikit intensitas ambient light supaya ruangan lebih terang.
+```
+
+**D. Ganti karakter dengan avatar saya (lewat script, tanpa buka Blender)**
+```
+Saya punya avatar Avaturn (model.glb) dan animasi Mixamo (Idle.fbx, Walking.fbx)
+di folder ini. Jalankan tools/anim_transfer.py via Blender headless untuk membuat
+public/models/guide/character.glb (dari Idle.fbx) dan walk.glb (dari Walking.fbx),
+lalu beri tahu saya command-nya. Kalau hasilnya "ngesot", bantu setel
+WALK_TIMESCALE di modules/player.js.
+```
+
+**E. Perbaiki bug "karakter menembus patung"** *(bug nyata di starter ini)*
 > Akar masalah: `checkCollision()` di `modules/movement.js` hanya mengecek
 > `walls.children`. Patung dimuat async di `modules/statue.js` dan tak pernah
 > didaftarkan sebagai penghalang.
@@ -385,14 +411,32 @@ buat Box3 untuk patung dan sertakan dalam pengecekan tabrakan di movement.js.
 Tolong jaga agar perubahan minimal dan jelaskan langkahnya.
 ```
 
-**D. Minta penjelasan kode (belajar)**
+**F. Tambah interaksi/fitur baru**
+```
+Saya ingin saat pemain dekat sebuah lukisan, muncul tombol "Putar Audio" yang
+memainkan file public/sounds/<judul>.mp3 berisi penjelasan karya. Tunjukkan file
+mana yang perlu diubah dan tambahkan secukupnya saja, jangan over-engineer.
+```
+
+**G. Iterasi setelah error** *(tempel error apa adanya)*
+```
+Setelah perubahan tadi, npm run dev menampilkan error ini:
+[tempel pesan error lengkap dari terminal/console di sini]
+Tolong cari penyebabnya dan perbaiki.
+```
+
+**H. Minta penjelasan kode (belajar)**
 ```
 Jelaskan alur dari klik mouse sampai kamera zoom ke lukisan. File mana saja yang
 terlibat dan apa peran masing-masing?
 ```
 
-> Setelah agen mengubah kode: jalankan `npm run dev`, cek di browser, dan **review
-> diff**-nya. Kalau salah, beri tahu agen apa yang keliru (iterasi).
+**Tips:**
+- **Iterasi kecil** — satu perubahan per prompt, lebih mudah dicek daripada minta 5 hal sekaligus.
+- **Tempel error verbatim** — jangan diringkas; pesan asli paling membantu agen.
+- **Selalu review** — setelah agen mengubah kode, jalankan `npm run dev`, cek di
+  browser, dan baca **diff**-nya. Kalau salah, beri tahu apa yang keliru (lanjut iterasi).
+- **Jangan terima buta** — kalian yang bertanggung jawab atas kode UAS, bukan AI-nya.
 
 ---
 

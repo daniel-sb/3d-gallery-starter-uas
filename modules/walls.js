@@ -1,13 +1,17 @@
 import * as THREE from "three";
-import { createWallTexture } from "./proceduralAssets.js";
 
 export function createWalls(scene) {
   let wallGroup = new THREE.Group();
   scene.add(wallGroup);
 
+  const wallTexture = new THREE.TextureLoader().load(
+    `${import.meta.env.BASE_URL}img/papua.jpg`
+  );
+  wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
+  wallTexture.repeat.set(4, 2);
+
   const wallMaterial = new THREE.MeshStandardMaterial({
-    color: 0xf4f2ef,
-    map: createWallTexture(),
+    map: wallTexture,
     roughness: 0.76,
     metalness: 0,
     side: THREE.DoubleSide,
