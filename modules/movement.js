@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { statueColliders } from "./statue.js";
 
 export const keysPressed = {
   ArrowUp: false,
@@ -154,6 +155,12 @@ export const checkCollision = (position, walls) => {
   for (let i = 0; i < walls.children.length; i += 1) {
     const wall = walls.children[i];
     if (wall.BoundingBox && collisionBox.intersectsBox(wall.BoundingBox)) {
+      return true;
+    }
+  }
+
+  for (let i = 0; i < statueColliders.length; i += 1) {
+    if (collisionBox.intersectsBox(statueColliders[i])) {
       return true;
     }
   }

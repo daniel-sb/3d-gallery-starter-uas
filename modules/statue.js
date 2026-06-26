@@ -5,12 +5,20 @@ import { createProceduralStatue } from "./proceduralAssets.js";
 
 const FLOOR_Y = -Math.PI; // matches floor.js
 const TARGET_HEIGHT = 6; // how tall the statue should stand, in world units
+export const statueColliders = [];
+
+const addStatueCollider = (statue) => {
+  statue.updateWorldMatrix(true, true);
+  statueColliders.push(new THREE.Box3().setFromObject(statue));
+};
 
 export const loadStatueModel = (scene) => {
   const loader = new GLTFLoader();
 
   const addFallbackStatue = () => {
-    scene.add(createProceduralStatue());
+    const statue = createProceduralStatue();
+    scene.add(statue);
+    addStatueCollider(statue);
   };
 
   loader.load(
@@ -44,6 +52,7 @@ export const loadStatueModel = (scene) => {
       statue.position.y += FLOOR_Y - fitted.min.y; // base on the floor
 
       scene.add(statue);
+      addStatueCollider(statue);
     },
     undefined,
     (error) => {
