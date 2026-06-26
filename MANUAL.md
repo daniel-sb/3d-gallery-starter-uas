@@ -188,20 +188,81 @@ Karakter ada di `public/models/guide/`:
   `MODEL_SCALE` (ukuran), `MODEL_Y_OFFSET` (tinggi/agar tidak melayang),
   `MODEL_FACE_OFFSET` (set `Math.PI` kalau karakter menghadap terbalik).
 
-**Penjelasan proses Mixamo (kalau ingin animasi sendiri):**
-1. Buka **https://www.mixamo.com** (login akun Adobe gratis).
-2. Upload model karakter (FBX/GLB → kalau GLB, convert dulu ke FBX, mis. via Blender).
-3. Mixamo otomatis **auto-rig** (memasang tulang) — ikuti penanda dagu, pergelangan, dll.
-4. Pilih animasi: cari **"Idle"** dan **"Walking"**. Atur kecepatan bila perlu.
-5. Download: untuk Idle pakai **"With Skin"**, untuk Walking boleh **"Without Skin"**
-   (cukup animasinya), format **FBX**.
-6. Convert FBX → GLB (mis. di **Blender**: File → Import FBX → Export glTF/GLB).
-7. Taruh hasilnya di `public/models/guide/` sebagai `character.glb` & `walk.glb`.
+**Proses Mixamo (cara RESMI Avaturn — PENTING):**
 
-> Catatan: nama tulang harus konsisten antar-klip (Mixamo memakai nama bersih:
-> Hips, Spine, Neck, Head, dst). Kalau tekstur hilang setelah Mixamo, kalian perlu
-> meng-*re-skin* mesh bertekstur ke armature animasi (proses lanjutan — boleh dilewati
-> untuk UAS, atau minta bantuan AI di Bagian 6).
+> ⚠️ **Mixamo TIDAK bisa baca GLB**, dan dialog Download Avaturn **hanya menyediakan GLB**
+> (Avatar T-Pose / Body only / Avatar with animation). Jadi FBX-nya **BUKAN** dari tombol
+> Download. Kalian **tidak me-rig avatar sendiri** di Mixamo — Avaturn menyediakan **satu
+> FBX generik** (skeleton-nya seragam dengan SEMUA avatar Avaturn) yang dipakai cuma untuk
+> "memancing" animasi dari Mixamo. Animasi itu lalu ditransfer ke avatar GLB kalian di Blender.
+> Panduan resmi: https://docs.avaturn.me/docs/importing/mixamo/
+
+**Langkah 1 — Ambil 2 file dari Avaturn**
+- Klik **Avatar (T-Pose)** → Download → ini **GLB avatar asli kalian** (wajah/baju kalian).
+- Buka tutorial **"Use with Mixamo animations"** (di dialog Download) → unduh **FBX generik**.
+  Link langsung: `https://assets.avaturn.me/mesh_for_mixamo_72940d11f8.fbx`
+  *(Inilah `mesh_for_mixamo_*.fbx` — model standar, sama untuk semua orang.)*
+
+**Langkah 2 — Ambil animasi di Mixamo**
+1. Buka **https://www.mixamo.com** (login akun Adobe gratis).
+2. **Upload Character** → pilih **`mesh_for_mixamo_*.fbx`** (FBX generik tadi) → auto-rig.
+3. Cari & pilih animasi **"Idle"**. Download: format **FBX**, **Without Skin**, 30 fps.
+4. Ulangi untuk **"Walking"**. Download: **FBX**, **Without Skin**.
+
+**Langkah 3 — Transfer animasi ke avatar GLB kalian (Blender)**
+> Karena skeleton FBX generik = skeleton avatar GLB kalian (nama tulang sama), action
+> animasi bisa langsung "dipinjamkan". Lakukan **dua kali**: sekali untuk idle, sekali untuk walk.
+
+1. **File → Import → glTF 2.0** → pilih **avatar GLB kalian** (muncul mesh + 1 armature).
+2. **File → Import → FBX** → pilih **FBX Idle dari Mixamo** (muncul armature ke-2 + Action).
+3. Ubah salah satu panel jadi **Dope Sheet**, lalu mode **Action Editor**.
+4. Di viewport/Outliner, **klik armature AVATAR kalian** (yang dari GLB).
+5. Di Action Editor, klik dropdown **Browse Action** (ikon kotak) → pilih action Mixamo
+   (biasanya bernama `mixamo.com` / `Armature|mixamo.com`). Animasi langsung jalan di avatar kalian.
+6. **Hapus** armature + mesh generik dari Mixamo (sisakan hanya avatar kalian).
+7. **File → Export → glTF 2.0 (.glb)** → di panel kanan centang **Animation** →
+   simpan sebagai **`character.glb`** (ini untuk idle).
+8. **Ulangi langkah 1–7** dengan **FBX Walking** → export sebagai **`walk.glb`**.
+
+**Langkah 4 — Pasang di project**
+- Taruh `character.glb` & `walk.glb` di `public/models/guide/`.
+- Sesuaikan `MODEL_SCALE` / `MODEL_Y_OFFSET` / `MODEL_FACE_OFFSET` di `modules/player.js`.
+
+**Alternatif Langkah 3 — TANPA buka Blender (mode command/headless)**
+
+Langkah 3 (transfer animasi) bisa dijalankan otomatis lewat **Blender headless** —
+tidak perlu buka GUI Blender sama sekali. Project ini menyediakan script
+`tools/anim_transfer.py`. Setelah punya avatar GLB + FBX animasi Mixamo, jalankan:
+
+```bash
+# Idle  → character.glb
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" --background \
+  --python tools/anim_transfer.py -- avatar.glb idle.fbx public/models/guide/character.glb
+
+# Walk  → walk.glb
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" --background \
+  --python tools/anim_transfer.py -- avatar.glb walking.fbx public/models/guide/walk.glb
+```
+
+Ganti `avatar.glb`, `idle.fbx`, `walking.fbx` dengan path file kalian, dan sesuaikan
+path `blender.exe` dengan versi Blender yang terpasang. Script otomatis: import avatar +
+FBX animasi, samakan nama tulang (buang prefix `mixamorig:`), tempel animasi ke armature
+avatar, lalu export GLB. *(Inilah cara yang dipakai saat membuat starter ini.)*
+
+> **Ringkasan file:**
+> | Dari mana | File | Fungsi |
+> |-----------|------|--------|
+> | Tombol **Avatar (T-Pose)** | GLB | avatar asli kalian (di-import ke Blender) |
+> | Tutorial **Use with Mixamo animations** | `mesh_for_mixamo_*.fbx` | di-upload ke Mixamo untuk ambil animasi |
+> | Mixamo | FBX Idle / Walking | animasi → ditransfer ke GLB di Blender → export GLB |
+
+> **Tips bila action tidak muncul / hasil aneh:** pastikan FBX Mixamo "Without Skin",
+> dan kalau dropdown action kosong, cek di **Outliner** apakah FBX-nya benar ter-import.
+> Jika tekstur avatar hilang (jadi abu-abu) setelah export, lihat catatan re-skin di bawah.
+
+> Catatan: kalau tekstur hilang (karakter jadi abu-abu) setelah proses ini, itu masalah
+> umum — perlu *re-skin* mesh bertekstur ke armature animasi. Proses lanjutan; boleh
+> dilewati untuk UAS atau minta bantuan AI (Bagian 6).
 
 ### 5.3 Custom tembok dengan aset eksternal (motif Papua)
 
